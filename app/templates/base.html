@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}KBO Saber Tools{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <header class="max-w-5xl mx-auto px-6 pt-4 pb-2 flex gap-4 text-sm">
+    <a href="/" class="underline">타자 계산기</a>
+    <a href="/pitch" class="underline">투수 계산기</a>
+  </header>
+  <main class="max-w-5xl mx-auto p-6">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

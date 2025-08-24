@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}wRC+ · OPS+ 계산기 (프리셋){% endblock %}
+{% block content %}
+  <h1 class="text-2xl md:text-3xl font-bold mb-2">wRC+ · OPS+ 계산기</h1>
+  <p class="text-sm text-slate-600 mb-4">
+    프리셋을 선택하면 리그 상수/파크 요인을 자동으로 채웁니다. PF는 정규화 값(1.000=중립) 권장.
+  </p>
+
+  <!-- 프리셋 바 -->
+  <div class="bg-white rounded-2xl shadow p-4 mb-6 flex flex-wrap items-end gap-3">
+    <label class="text-sm">
+      <span class="text-slate-700 mr-2">Preset</span>
+      <select id="presetSelect" class="px-3 py-2 rounded-xl border">
+        <option value="">수동 입력</option>
+        {% for key, p in presets.items() %}
+          <option value="{{key}}">{{ p.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="text-sm inline-flex items-center gap-2">
+      <input id="fillOnlyEmpty" type="checkbox" class="rounded border" checked>
+      <span>빈 칸만 채우기</span>
+    </label>
+    <button id="applyPresetBtn" type="button" class="px-3 py-2 rounded-xl bg-slate-900 text-white">프리셋 적용</button>
+  </div>
+
+  <form method="post" class="grid md:grid-cols-2 gap-6">
+    <!-- 좌측: 개인 성적 / (선택) wOBA / (선택) 이벤트 가중치 -->
+    <section class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-semibold mb-3">① 개인 성적 & (선택) wOBA</h2>
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        {% macro num(name,label,ph,v) -%}
+          <label class="flex flex-col gap-1">
+            <span class="text-slate-700">{{label}}</span>
+            <input name="{{name}}" type="number" step="1" min="0" placeholder="{{ph}}" value="{{v}}"
+                   class="px-3 py-2 rounded-xl border"/>
+          </label>
+        {%- endmacro %}
+        {{ num('AB','AB','500', vals.AB) }}
+        {{ num('BB','BB','55', vals.BB) }}
+        {{ num('HBP','HBP','5', vals.HBP) }}
+        {{ num('SF','SF','5', vals.SF) }}
+        {{ num('H','H','150', vals.H) }}
+        {{ num('2B','2B','30', vals['2B']) }}
+        {{ num('3B','3B','5', vals['3B']) }}
+        {{ num('HR','HR','20', vals.HR) }}
+        {{ num('IBB','IBB','5', vals.IBB) }}
+      </div>
+
+      <label class="flex flex-col gap-1 mt-4 text-sm">
+        <span class="text-slate-700">개인 wOBA 직접 입력 (선택)</span>
+        <input name="wOBA_input" type="number" step="0.001" min="0" max="1" placeholder="예: 0.360" value="{{vals.wOBA_input}}"
+               class="px-3 py-2 rounded-xl border"/>
+        <span class="text-xs text-slate-500">입력 시 이벤트 가중치 계산 경로를 건너뜁니다.</span>
+      </label>
+
+      <h3 class="font-semibold mt-6 mb-2">선택: 이벤트 기반 wOBA 가중치</h3>
+      <details class="text-sm">
+        <summary class="cursor-pointer select-none text-slate-700 font-medium">펼치기</summary>
+        <div class="grid grid-cols-3 gap-3 mt-3">
+          {% macro fl(name,ph,v) -%}
+            <label class="flex flex-col gap-1 text-xs">
+              <span>{{name}}</span>
+              <input name="{{name}}" type="number" step="0.001" min="0" placeholder="{{ph}}" value="{{v}}"
+                     class="px-2 py-1 rounded-xl border"/>
+            </label>
+          {%- endmacro %}
+          {{ fl('wBB','0.69', vals.wBB) }}
+          {{ fl('wHBP','0.72', vals.wHBP) }}
+          {{ fl('w1B','0.88', vals.w1B) }}
+          {{ fl('w2B','1.24', vals.w2B) }}
+          {{ fl('w3B','1.56', vals.w3B) }}
+          {{ fl('wHR','1.95', vals.wHR) }}
+          <p class="col-span-3 text-xs text-slate-500">※ 개인 wOBA를 입력하면 이 가중치는 무시됩니다.</p>
+        </div>
+      </details>
+    </section>
+
+    <!-- 우측: 리그 상수 / PF / 기준선 -->
+    <section class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-semibold mb-3">② 리그/환경 상수</h2>
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <label class="flex flex-col gap-1">
+          <span class="text-slate-700">리그 wOBA</span>
+          <input name="lgwOBA" type="number" step="0.001" min="0" max="1" placeholder="0.330" value="{{vals.lgwOBA}}"
+                 class="px-3 py-2 rounded-xl border"/>
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-slate-700">wOBA Scale</span>
+          <input name="wOBAScale" type="number" step="0.001" min="0" placeholder="1.15" value="{{vals.wOBAScale}}"
+                 class="px-3 py-2 rounded-xl border"/>
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-slate-700">리그 R/PA</span>
+          <input name="lgRperPA" type="number" step="0.0001" min="0" placeholder="0.1100" value="{{vals.lgRperPA}}"
+                 class="px-3 py-2 rounded-xl border"/>
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-slate-700">PF (정규화: 1.000=중립)</span>
+          <input name="PF" type="number" step="0.001" min="0.500" max="1.500" placeholder="1.000" value="{{vals.PF}}"
+                 class="px-3 py-2 rounded-xl border"/>
+          <span class="text-xs text-slate-500">예: 0.888 / 1.000 / 1.045 — 95/105 처럼 넣어도 자동 변환됩니다.</span>
+        </label>
+        <label class="flex flex-col gap-1 col-span-2">
+          <span class="text-slate-700">League wRC/PA (투수 제외)</span>
+          <input name="lgwRCperPA_noP" type="number" step="0.0001" min="0" placeholder="예: 0.1100" value="{{vals.lgwRCperPA_noP}}"
+                 class="px-3 py-2 rounded-xl border"/>
+          <span class="text-xs text-slate-500">wRC+ 분모에 사용되는 타자 전용 기준선입니다.</span>
+        </label>
+      </div>
+
+      <h3 class="font-semibold mt-6 mb-2">OPS+ (참고)</h3>
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <label class="flex flex-col gap-1">
+          <span class="text-slate-700">리그 OBP</span>
+          <input name="lgOBP" type="number" step="0.001" min="0" max="2" placeholder="0.330" value="{{vals.lgOBP}}"
+                 class="px-3 py-2 rounded-xl border"/>
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-slate-700">리그 SLG</span>
+          <input name="lgSLG" type="number" step="0.001" min="0" max="5" placeholder="0.400" value="{{vals.lgSLG}}"
+                 class="px-3 py-2 rounded-xl border"/>
+        </label>
+      </div>
+
+      <div class="mt-4 flex gap-2">
+        <button class="px-4 py-2 rounded-xl bg-slate-900 text-white shadow hover:opacity-90" type="submit">계산하기</button>
+        <a href="/" class="px-4 py-2 rounded-xl border">초기화</a>
+      </div>
+    </section>
+  </form>
+
+  {% if results %}
+  <section class="mt-8 grid md:grid-cols-2 gap-6">
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h3 class="font-semibold mb-2">기본 지표</h3>
+      <div class="text-sm space-y-1">
+        <p>PA = {{results.PA}}</p>
+        <p>OBP = {{'%.3f'|format(results.OBP)}}</p>
+        <p>SLG = {{'%.3f'|format(results.SLG)}}</p>
+        <p class="font-medium">OPS = {{'%.3f'|format(results.OPS)}}</p>
+      </div>
+      <h3 class="font-semibold mt-4 mb-2">OPS+ (참고)</h3>
+      {% if results.OPS_plus is not none %}
+        <p class="text-lg font-bold flex items-center gap-2">
+          {{results.OPS_plus|round(2)}}
+          {% if results.ops_grade %}
+            <span class="text-xs px-2 py-0.5 rounded ring-1 ring-black/10 {{results.ops_class}}">
+              {{results.ops_grade}}
+            </span>
+          {% endif %}
+        </p>
+        <p class="text-xs text-slate-500">
+          공식: OPS+ = 100/PF × (OBP/lgOBP + SLG/lgSLG − 1), PF={{'%.3f'|format(results.PF_norm)}}
+        </p>
+      {% else %}
+        <p class="text-sm text-slate-500">리그 OBP/SLG를 입력하면 계산됩니다.</p>
+      {% endif %}
+    </div>
+
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h3 class="font-semibold mb-2">wRAA / wRC / wRC+</h3>
+      {% if results.wOBA is not none %}
+        <p class="text-sm">사용 wOBA = {{'%.3f'|format(results.wOBA)}}</p>
+      {% else %}
+        <p class="text-sm text-slate-500">wOBA가 없습니다. 개인 wOBA를 직접 입력하거나 가중치를 채워주세요.</p>
+      {% endif %}
+      {% if results.wRAA is not none %}
+        <p class="text-sm">wRAA = {{'%.3f'|format(results.wRAA)}}</p>
+      {% endif %}
+      {% if results.wRC is not none %}
+        <p class="text-sm">wRC = {{'%.3f'|format(results.wRC)}}</p>
+      {% endif %}
+      {% if results.wRC_plus is not none %}
+        <p class="text-lg font-bold mt-2 flex items-center gap-2">
+          wRC+ = {{results.wRC_plus|round(2)}}
+          {% if results.wrc_grade %}
+            <span class="text-xs px-2 py-0.5 rounded ring-1 ring-black/10 {{results.wrc_class}}">
+              {{results.wrc_grade}}
+            </span>
+          {% endif %}
+        </p>
+        <p class="text-xs text-slate-500">분모: League wRC/PA (투수 제외)</p>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- 등급표(공용) -->
+  <details class="mt-8 bg-white rounded-2xl shadow p-4">
+    <summary class="cursor-pointer font-semibold">OPS+ · wRC+ 등급표 보기</summary>
+    <div class="mt-3 text-sm">
+      <table class="w-full text-left border-separate border-spacing-y-1">
+        <thead class="text-slate-600">
+          <tr><th class="px-3 py-1">임계값</th><th class="px-3 py-1">설명</th></tr>
+        </thead>
+        <tbody class="text-slate-800">
+          <tr><td class="px-3 py-1">160+</td><td class="px-3 py-1">Excellent</td></tr>
+          <tr><td class="px-3 py-1">140+</td><td class="px-3 py-1">Great</td></tr>
+          <tr><td class="px-3 py-1">115+</td><td class="px-3 py-1">Above Average</td></tr>
+          <tr><td class="px-3 py-1">100</td><td class="px-3 py-1">Average</td></tr>
+          <tr><td class="px-3 py-1">80–99</td><td class="px-3 py-1">Below Average</td></tr>
+          <tr><td class="px-3 py-1">75–79</td><td class="px-3 py-1">Poor</td></tr>
+          <tr><td class="px-3 py-1">≤60</td><td class="px-3 py-1">Awful</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+
+  <!-- 프리셋 JSON을 별도 script로 주입 -->
+  <script id="preset-data" type="application/json">{{ presets|tojson }}</script>
+
+  <!-- 실제 동작 스크립트 -->
+  <script>
+    (function(){
+      const presetJsonEl = document.getElementById("preset-data");
+      const PRESETS = presetJsonEl ? JSON.parse(presetJsonEl.textContent || "{}") : {};
+      const TARGET_FIELDS = ["lgwOBA","wOBAScale","lgRperPA","PF","lgwRCperPA_noP","lgOBP","lgSLG"];
+      function setField(name, value, onlyEmpty){
+        const el = document.querySelector(`[name="${name}"]`);
+        if(!el) return;
+        if(onlyEmpty && el.value !== "") return;
+        el.value = (value==null?"":value);
+      }
+      const btn = document.getElementById("applyPresetBtn");
+      if(btn){
+        btn.addEventListener("click", ()=>{
+          const sel = document.getElementById("presetSelect").value;
+          const onlyEmpty = document.getElementById("fillOnlyEmpty").checked;
+          if(!sel || !PRESETS[sel]) return;
+          const p = PRESETS[sel];
+          TARGET_FIELDS.forEach(k=> setField(k, p[k], onlyEmpty));
+        });
+      }
+    })();
+  </script>
+{% endblock %}

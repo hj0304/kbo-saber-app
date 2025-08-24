@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}투수 계산기 — ERA- · FIP- · xFIP-{% endblock %}
+{% block content %}
+  <h1 class="text-2xl md:text-3xl font-bold mb-4">투수 계산기 — ERA- · FIP- · xFIP-</h1>
+
+  <!-- 프리셋 바 -->
+  <div class="bg-white rounded-2xl shadow p-4 mb-6 flex flex-wrap items-end gap-3">
+    <label class="text-sm">
+      <span class="text-slate-700 mr-2">Preset</span>
+      <select id="pitchPresetSelect" class="px-3 py-2 rounded-xl border">
+        <option value="">수동 입력</option>
+        {% for key, p in presets_pitch.items() %}
+          <option value="{{key}}">{{ p.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="text-sm inline-flex items-center gap-2">
+      <input id="pitchFillOnlyEmpty" type="checkbox" class="rounded border" checked>
+      <span>빈 칸만 채우기</span>
+    </label>
+    <button id="applyPitchPresetBtn" type="button" class="px-3 py-2 rounded-xl bg-slate-900 text-white">프리셋 적용</button>
+  </div>
+
+  <form method="post" class="grid md:grid-cols-2 gap-6">
+    <!-- 좌: 입력 -->
+    <section class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-semibold mb-3">입력</h2>
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <label class="flex flex-col gap-1">
+          <span>ERA</span>
+          <input name="ERA" type="number" step="0.01" min="0" class="px-3 py-2 rounded-xl border" value="{{vals.ERA}}">
+        </label>
+        <label class="flex flex-col gap-1">
+          <span>리그 ERA (lgERA)</span>
+          <input name="lgERA" type="number" step="0.01" min="0" class="px-3 py-2 rounded-xl border" value="{{vals.lgERA}}">
+        </label>
+
+        <label class="flex flex-col gap-1">
+          <span>FIP</span>
+          <input name="FIP" type="number" step="0.01" min="0" class="px-3 py-2 rounded-xl border" value="{{vals.FIP}}">
+        </label>
+        <label class="flex flex-col gap-1">
+          <span>리그 FIP (lgFIP)</span>
+          <input name="lgFIP" type="number" step="0.01" min="0" class="px-3 py-2 rounded-xl border" value="{{vals.lgFIP}}">
+        </label>
+
+        <label class="flex flex-col gap-1">
+          <span>xFIP</span>
+          <input name="xFIP" type="number" step="0.01" min="0" class="px-3 py-2 rounded-xl border" value="{{vals.xFIP}}">
+        </label>
+        <label class="flex flex-col gap-1">
+          <span>리그 xFIP (lgxFIP)</span>
+          <input name="lgxFIP" type="number" step="0.01" min="0" class="px-3 py-2 rounded-xl border" value="{{vals.lgxFIP}}">
+        </label>
+
+        <label class="flex flex-col gap-1 col-span-2">
+          <span>파크팩터 PF (예: 0.888 / 1.000 / 1.045)</span>
+          <input name="PF" type="number" step="0.001" min="0.500" max="1.500" class="px-3 py-2 rounded-xl border" value="{{vals.PF}}">
+          <span class="text-xs text-slate-500">소수 3자리까지 입력 가능 · 내부적으로 100 스케일(PF×100)로 환산합니다.</span>
+        </label>
+      </div>
+
+      <div class="mt-4 flex gap-2">
+        <button class="px-4 py-2 rounded-xl bg-slate-900 text-white shadow hover:opacity-90" type="submit">계산하기</button>
+        <a class="px-4 py-2 rounded-xl border" href="/pitch">초기화</a>
+      </div>
+    </section>
+
+    <!-- 우: 결과 -->
+    <section class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-semibold mb-3">결과</h2>
+      {% if results %}
+        <div class="space-y-3 text-sm">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-medium">ERA-</span>
+              {% if results.era_grade %}
+                <span class="text-[11px] px-2 py-0.5 rounded ring-1 ring-black/10 {{results.era_class}}">
+                  {{results.era_grade}}
+                </span>
+              {% endif %}
+            </div>
+            <p class="text-lg font-bold">
+              {{ results.ERA_minus|round(2) if results.ERA_minus is not none else '-' }}
+            </p>
+          </div>
+
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-medium">FIP-</span>
+              {% if results.fip_grade %}
+                <span class="text-[11px] px-2 py-0.5 rounded ring-1 ring-black/10 {{results.fip_class}}">
+                  {{results.fip_grade}}
+                </span>
+              {% endif %}
+            </div>
+            <p class="text-lg font-bold">
+              {{ results.FIP_minus|round(2) if results.FIP_minus is not none else '-' }}
+            </p>
+          </div>
+
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-medium">xFIP-</span>
+              {% if results.xfip_grade %}
+                <span class="text-[11px] px-2 py-0.5 rounded ring-1 ring-black/10 {{results.xfip_class}}">
+                  {{results.xfip_grade}}
+                </span>
+              {% endif %}
+            </div>
+            <p class="text-lg font-bold">
+              {{ results.xFIP_minus|round(2) if results.xFIP_minus is not none else '-' }}
+            </p>
+          </div>
+
+          <p class="text-xs text-slate-500">
+            PF(입력) = {{ '%.3f'|format(results.PF_percent/100.0) if results.PF_percent is not none else '-' }}
+            (→ 내부 100 스케일 {{ '%.1f'|format(results.PF_percent) }})
+          </p>
+        </div>
+      {% else %}
+        <p class="text-sm text-slate-500">좌측에 값을 입력하고 “계산하기”를 눌러주세요.</p>
+      {% endif %}
+    </section>
+  </form>
+
+  <!-- 등급 표 (참고) -->
+  <details class="mt-8 bg-white rounded-2xl shadow p-4">
+    <summary class="cursor-pointer font-semibold">ERA-/FIP-/xFIP- 등급표 보기</summary>
+    <div class="mt-3 text-sm">
+      <table class="w-full text-left border-separate border-spacing-y-1">
+        <thead class="text-slate-600">
+          <tr><th class="px-3 py-1">Rating</th><th class="px-3 py-1">ERA-/FIP-/xFIP-</th></tr>
+        </thead>
+        <tbody class="text-slate-800">
+          <tr><td class="px-3 py-1">Excellent</td><td class="px-3 py-1">70</td></tr>
+          <tr><td class="px-3 py-1">Great</td><td class="px-3 py-1">80</td></tr>
+          <tr><td class="px-3 py-1">Above Average</td><td class="px-3 py-1">90</td></tr>
+          <tr><td class="px-3 py-1">Average</td><td class="px-3 py-1">100</td></tr>
+          <tr><td class="px-3 py-1">Below Average</td><td class="px-3 py-1">110</td></tr>
+          <tr><td class="px-3 py-1">Poor</td><td class="px-3 py-1">115</td></tr>
+          <tr><td class="px-3 py-1">Awful</td><td class="px-3 py-1">125</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+
+  <!-- 프리셋 JSON & 스크립트 -->
+  <script id="pitch-preset-data" type="application/json">{{ presets_pitch|tojson }}</script>
+  <script>
+    (function(){
+      const dataEl = document.getElementById('pitch-preset-data');
+      const PRESETS = dataEl ? JSON.parse(dataEl.textContent || '{}') : {};
+      const TARGET_FIELDS = ['lgERA','lgFIP','lgxFIP','PF'];
+      function setField(name, value, onlyEmpty){
+        const el = document.querySelector(`[name="${name}"]`);
+        if(!el) return;
+        if(onlyEmpty && el.value !== '') return;
+        el.value = (value==null?'':value);
+      }
+      const btn = document.getElementById('applyPitchPresetBtn');
+      if(btn){
+        btn.addEventListener('click', () =>{
+          const sel = document.getElementById('pitchPresetSelect').value;
+          const onlyEmpty = document.getElementById('pitchFillOnlyEmpty').checked;
+          if(!sel || !PRESETS[sel]) return;
+          const p = PRESETS[sel];
+          TARGET_FIELDS.forEach(k=> setField(k, p[k], onlyEmpty));
+        });
+      }
+    })();
+  </script>
+{% endblock %}

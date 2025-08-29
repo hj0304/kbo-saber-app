@@ -15,7 +15,7 @@ _CACHE = {"df": None, "ts": 0.0}
 CACHE_SEC = 30 * 60  # 30분
 
 
-def _pick_col(df: pd.DataFrame, candidates: list[str], default: str | None = None) -> str | None:
+def _pick_col(df: pd.DataFrame, candidates, default=None):
     cols = set(map(str, df.columns))
     for c in candidates:
         if c in cols:
@@ -50,7 +50,6 @@ def to_f(x):
 
 
 def to_i0(x) -> int:
-    """정수 변환(+NaN/None/문자 '-')을 0으로 안전 처리."""
     try:
         if x == x and x is not None and x != "-":
             return int(round(float(x)))
@@ -81,8 +80,8 @@ def pythag():
     if sort_by not in ("actual", "pythag", "proj"):
         sort_by = "actual"
 
-    rows: list[dict] = []
-    err: str | None = None
+    rows = []
+    err = None
     has_projection = False
 
     try:
@@ -94,32 +93,38 @@ def pythag():
         col_ra   = _pick_col(df, ["실점", "RA", "Runs Allowed"], "실점")
         col_gp   = _pick_col(df, ["경기수", "G", "Games"], "경기수")
         col_w    = _pick_col(df, ["승", "W", "Wins"], "승")
-        col_d    = _pick_col(df, ["무", "T", "Draws", "Ties"])    # 무(선택)
+        col_d    = _pick_col(df, ["무", "T", "Draws", "Ties"])  # 선택
         col_l    = _pick_col(df, ["패", "L", "Losses"], "패")
         col_pct  = _pick_col(df, ["승률", "PCT", "Win%", "WinPct"], "승률")
 
-        # (참고) 시트의 "시즌 종료 시 예상 승률/순위"가 있더라도,
-        # 예상 승률은 지수(exp) 반영한 피타고리안(calc_pct)을 서버에서 재계산하여 사용.
-        # 예상 순위 컬럼이 있다면 표시용으로만 사용할 수 있으나 기본은 서버 계산 순위 사용.
-        col_prank = _pick_col(df, [
-            "예상순위", "예상 순위", "ProjRank", "Projected Rank", "ProjectedRank",
-            "시즌 종료 시 예상 순위", "시즌종료시예상순위"
-        ])
+        # 피타고리안 승률(현재 비교용)은 계속 계산
+        # 예상 탭용 "예상 승률"은 반드시 시트의 전용 컬럼을 사용
+        col_proj_pct = _pick_col(
+            df,
+            ["시즌 종료 시 예상 승률", "시즌종료시예상승률", "예상승률", "예상 승률", "Projected Win%", "ProjPct"]
+        )
+        col_proj_rank = _pick_col(
+            df,
+            ["시즌 종료 시 예상 순위", "시즌종료시예상순위", "예상순위", "예상 순위", "Projected Rank", "ProjRank"]
+        )
+        has_projection = col_proj_pct is not None  # 예상 탭 활성화 조건: "시즌 종료 시 예상 승률" 컬럼 존재
 
-        rsra_available = True  # RS/RA가 있어야 예상 승률 계산 가능
+        # ---- 행 구성 ----
+        rsra_any = False  # 현재 피타고 계산용 체크(표시 목적)
         for _, row in df.iterrows():
             team = row.get(col_team, "-")
             rs = to_f(row.get(col_rs, float("nan")))
             ra = to_f(row.get(col_ra, float("nan")))
-            if rs != rs or ra != ra:
-                rsra_available = False
+            if rs == rs and ra == ra:
+                rsra_any = True
+
             gp = row.get(col_gp, "-")
             w  = row.get(col_w, "-")
             d  = row.get(col_d, 0) if col_d else 0
             l  = row.get(col_l, "-")
             actual_pct = to_f(row.get(col_pct, float("nan")))
 
-            # 피타고리안 승률 (지수 반영)
+            # 현재 비교용 피타고 승률
             calc_pct = pythag_win_pct(rs, ra, exp)
 
             item = {
@@ -130,17 +135,34 @@ def pythag():
                 "calc_pct": calc_pct,
                 "diff": (calc_pct - actual_pct) if (calc_pct == calc_pct and actual_pct == actual_pct) else float("nan"),
             }
+
+            # 시즌 종료 시 예측: 예상 승률 = 시트 컬럼 그대로 사용
+            if has_projection:
+                proj_pct = to_f(row.get(col_proj_pct, float("nan")))
+                d_now = to_i0(d)
+                games = max(SEASON_GAMES - d_now, 0)
+
+                if proj_pct == proj_pct:
+                    proj_w = int(round(games * proj_pct))
+                    proj_l = int(games - proj_w)
+                else:
+                    proj_w, proj_l = "-", "-"
+
+                item["proj_pct"] = proj_pct
+                item["proj_w"]   = proj_w
+                item["proj_d"]   = d_now
+                item["proj_l"]   = proj_l
+                # 시트에 예상 순위가 있으면 표시용으로 보관
+                item["proj_rank_src"] = row.get(col_proj_rank, "-") if col_proj_rank else "-"
+
             rows.append(item)
 
-        # 예상 탭은 RS/RA가 있어야(= calc_pct 산출 가능) 활성화
-        has_projection = rsra_available and (len(rows) > 0)
-
-        # ---- 승차(GB) 계산: 선두 W/L 기준 ----
+        # ---- 승차(GB): 선두 현재 승률 기준 ----
         leader = None
         valid_actual = [r for r in rows if r["actual_pct"] == r["actual_pct"]]
         if valid_actual:
             leader = max(valid_actual, key=lambda x: x["actual_pct"])
-        else:
+        elif rsra_any:
             valid_calc = [r for r in rows if r["calc_pct"] == r["calc_pct"]]
             leader = max(valid_calc, key=lambda x: x["calc_pct"]) if valid_calc else None
 
@@ -155,33 +177,20 @@ def pythag():
             else:
                 r["gb"] = float("nan")
 
-        # ---- 시즌 종료 시 예상치 계산 (요청 반영) ----
-        # 예상 무 = 현재 무
-        # 예상 승률 = calc_pct (지수 반영)
-        # 유효 경기수 = 144 - 현재 무
-        # 예상 승 = round(유효경기수 * 예상 승률)
-        # 예상 패 = 유효경기수 - 예상 승
-        if has_projection:
-            for r in rows:
-                d_now = to_i0(r.get("d", 0))
-                games = max(SEASON_GAMES - d_now, 0)
-                proj_pct = r["calc_pct"]
-                if proj_pct == proj_pct:
-                    proj_w = int(round(games * proj_pct))
-                    proj_l = int(games - proj_w)
-                else:
-                    proj_w, proj_l = "-", "-"
-
-                r["proj_pct"] = proj_pct
-                r["proj_w"]   = proj_w
-                r["proj_d"]   = d_now
-                r["proj_l"]   = proj_l
-
         # ---- 정렬 & 순위 부여 ----
         if sort_by == "pythag":
             rows.sort(key=lambda x: (x["calc_pct"] if x["calc_pct"] == x["calc_pct"] else -1), reverse=True)
         elif sort_by == "proj" and has_projection:
-            rows.sort(key=lambda x: (x.get("proj_pct") if x.get("proj_pct") == x.get("proj_pct") else -1), reverse=True)
+            # 예상 순위가 시트에 있으면 그걸로(숫자 오름차순), 없으면 예상 승률 내림차순
+            def to_rank(v):
+                try:
+                    return int(v)
+                except Exception:
+                    return 10**9
+            if any(r.get("proj_rank_src") not in (None, "-", "") for r in rows):
+                rows.sort(key=lambda x: to_rank(x.get("proj_rank_src")))
+            else:
+                rows.sort(key=lambda x: (x.get("proj_pct") if x.get("proj_pct") == x.get("proj_pct") else -1), reverse=True)
         else:
             rows.sort(key=lambda x: (x["actual_pct"] if x["actual_pct"] == x["actual_pct"] else -1), reverse=True)
 

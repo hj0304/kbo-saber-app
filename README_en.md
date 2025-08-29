@@ -92,9 +92,3 @@ Build: pip install -r requirements.txt
 Start: gunicorn run:app
 
 Env: PYTHAG_CSV_URL (Google Sheets published CSV)
-
-## C. 커밋/푸시
-```bash
-git add README_en.md README.md
-git commit -m "docs: add English README + language switcher"
-git push origin main

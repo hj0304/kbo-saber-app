@@ -58,6 +58,7 @@ Built with Flask.
 ---
 
 ## 📂 Structure
+```bash
 kbo-saber-app/
 ├─ run.py
 ├─ requirements.txt

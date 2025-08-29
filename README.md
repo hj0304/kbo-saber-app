@@ -1,3 +1,6 @@
+🌐 Languages: **한국어** | [English](README_en.md)
+
+
 # ⚾ KBO Saber App
 
 KBO 리그 데이터를 기반으로 다양한 세이버메트릭스 지표를 계산하고 시각화할 수 있는 웹 애플리케이션입니다.  

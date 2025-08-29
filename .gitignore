@@ -1,19 +1,47 @@
-# Python
-__pycache__/
-*.pyc
-
-# venv
+# Python 가상환경
 .venv/
 venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
-# OS / IDE
+# 환경 변수/민감한 설정
+.env
+*.secret
+*.key
+
+# 데이터/로컬 파일
+data/
+raw_data/
+*.sqlite3
+*.db
+*.log
+*.csv
+*.xlsx
+real_time_pyt_win_rate.xlsx   # ✅ 피타고리안 원본 엑셀 제외
+league_constant.txt
+
+# Jupyter Notebook 체크포인트
+.ipynb_checkpoints/
+
+# 운영체제 캐시/임시파일
 .DS_Store
 Thumbs.db
+
+# IDE/에디터 설정
 .vscode/
 .idea/
+*.swp
 
-# Flask instance (if any)
-instance/
+# 빌드/배포 산출물
+dist/
+build/
+*.egg-info/
+*.egg
 
-#절대 올리지말것
-.env
+# Render/임시 캐시
+*.bak
+*.tmp
+
+# ✅ 스크린샷은 GitHub에 포함 (docs/screenshots/*)

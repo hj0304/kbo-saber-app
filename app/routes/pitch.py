@@ -6,9 +6,9 @@ bp = Blueprint("pitch", __name__)
 PRESETS_PITCH = {
     "kbo_2025_example": {
         "label": "KBO 2025 (진행중)",
-        "lgERA": 4.21,
-        "lgFIP": 4.16,
-        "lgxFIP": 3.19
+        "lgERA": 4.22,
+        "lgFIP": 4.18,
+        "lgxFIP": 3.20
     },
     "kbo_2024_example": {
         "label": "KBO 2024 (반영완료)",
@@ -79,7 +79,7 @@ def calc():
             # 100 * ((M + (M - M*(PF/100))) / lgM) = 100 * (M*(2 - PF/100)) / lgM
             if metric is None or lg_metric is None or lg_metric <= 0:
                 return None
-            return 100.0 * (metric * (2.0 - (PFpct/100.0))) / lg_metric
+            return 100.0 * (metric + (metric - metric * (PFpct/100.0))) / lg_metric         # == return 100.0 * (metric * (2.0 - (PFpct/100.0))) / lg_metric 
 
         ERA_minus  = minus_metric(ERA,  lgERA)
         FIP_minus  = minus_metric(FIP,  lgFIP)

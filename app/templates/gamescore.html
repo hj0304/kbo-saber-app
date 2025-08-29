@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}게임스코어 / GSv2 계산기{% endblock %}
+{% block content %}
+  <h1 class="text-2xl md:text-3xl font-bold mb-4">게임스코어 · Game Score v2 계산기</h1>
+  <form method="post" class="grid md:grid-cols-2 gap-6">
+    <section class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-semibold mb-3">입력</h2>
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        {% macro fl(name,label,ph,v, step='0.1') -%}
+          <label class="flex flex-col gap-1">
+            <span class="text-slate-700">{{label}}</span>
+            <input name="{{name}}" type="number" step="{{step}}" min="0" placeholder="{{ph}}" value="{{v}}"
+                   class="px-3 py-2 rounded-xl border" />
+          </label>
+        {%- endmacro %}
+        {{ fl('IP','IP (십진 이닝: 6.2=6이닝 2아웃)','6.0', vals.IP) }}
+        {{ fl('H','피안타(H)','5', vals.H, '1') }}
+        {{ fl('BB','볼넷(BB)','2', vals.BB, '1') }}
+        {{ fl('K','삼진(K)','6', vals.K, '1') }}
+        {{ fl('ER','자책점(ER)','2', vals.ER, '1') }}
+        {{ fl('UER','비자책(UER)','0', vals.UER, '1') }}
+        {{ fl('HR','피홈런(HR)','1', vals.HR, '1') }}
+      </div>
+      <div class="mt-4 flex gap-2">
+        <button class="px-4 py-2 rounded-xl bg-slate-900 text-white shadow" type="submit">계산하기</button>
+        <a href="/gamescore" class="px-4 py-2 rounded-xl border">초기화</a>
+      </div>
+      <p class="mt-2 text-xs text-slate-500">※ IP는 0.0/0.1/0.2만 유효(각각 추가 아웃 0/1/2)</p>
+    </section>
+
+    <section class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-semibold mb-3">결과</h2>
+      {% if results %}
+        <div class="text-sm space-y-2">
+          <p>아웃 수(outs): <b>{{results.outs}}</b> · 4이닝 이후 완료 이닝: <b>{{results.after4}}</b> · 실점(R)=ER+UER: <b>{{results.R}}</b></p>
+          <p class="text-lg font-bold">Game Score: {{ results.GS|round(2) }}</p>
+          <p class="text-lg font-bold">Game Score v2: {{ results.GSv2|round(2) }}</p>
+        </div>
+      {% else %}
+        <p class="text-sm text-slate-500">좌측에 값을 입력하고 “계산하기”를 누르세요.</p>
+      {% endif %}
+      <details class="mt-4">
+        <summary class="cursor-pointer font-medium">공식 보기</summary>
+        <div class="text-xs text-slate-600 mt-2 space-y-1">
+          <p>GS = 50 + 1×outs + 2×(4이닝 이후 완료 이닝) + 1×K − 2×H − 4×ER − 2×UER − 1×BB</p>
+          <p>GSv2 = 40 + 2×outs + 1×K − 2×BB − 2×H − 3×R − 6×HR</p>
+        </div>
+      </details>
+    </section>
+  </form>
+{% endblock %}

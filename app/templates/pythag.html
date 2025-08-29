@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}실시간 피타고리안 승률{% endblock %}
+{% block content %}
+  <h1 class="text-2xl md:text-3xl font-bold mb-4">실시간 피타고리안 승률</h1>
+
+  <!-- 컨트롤 바 -->
+  <form method="get" class="mb-3 flex flex-wrap items-end gap-3">
+    <label class="text-sm">
+      <span class="text-slate-700 mr-2">지수(exponent)</span>
+      <select name="exp" class="px-3 py-2 rounded-xl border">
+        <option value="2.0" {% if exp==2.0 %}selected{% endif %}>2.00 (기본)</option>
+        <option value="1.83" {% if exp==1.83 %}selected{% endif %}>1.83 (문헌)</option>
+        <option value="1.82" {% if exp==1.82 %}selected{% endif %}>1.82</option>
+        <option value="1.90" {% if exp==1.90 %}selected{% endif %}>1.90</option>
+      </select>
+    </label>
+
+    <label class="text-sm">
+      <span class="text-slate-700 mr-2">정렬</span>
+      <select name="sort" class="px-3 py-2 rounded-xl border">
+        <option value="actual" {% if sort_by == 'actual' %}selected{% endif %}>현재 승률 순</option>
+        <option value="pythag" {% if sort_by == 'pythag' %}selected{% endif %}>피타고리안 승률 순</option>
+        {% if has_projection %}
+          <option value="proj" {% if sort_by == 'proj' %}selected{% endif %}>예상 승률 순</option>
+        {% endif %}
+      </select>
+    </label>
+
+    <button class="px-4 py-2 rounded-xl bg-slate-900 text-white shadow" type="submit">적용</button>
+  </form>
+
+  <!-- 탭 -->
+  <div class="mb-4 flex gap-2 text-sm">
+    <a href="/pythag?exp={{ '%.2f' % exp }}&sort=actual"
+       class="px-3 py-1.5 rounded-xl border {{ 'bg-slate-900 text-white' if sort_by=='actual' else 'bg-white' }}">
+      현재 승률 순위
+    </a>
+    <a href="/pythag?exp={{ '%.2f' % exp }}&sort=pythag"
+       class="px-3 py-1.5 rounded-xl border {{ 'bg-slate-900 text-white' if sort_by=='pythag' else 'bg-white' }}">
+      피타고리안 승률 순위
+    </a>
+    {% if has_projection %}
+    <a href="/pythag?exp={{ '%.2f' % exp }}&sort=proj"
+       class="px-3 py-1.5 rounded-xl border {{ 'bg-slate-900 text-white' if sort_by=='proj' else 'bg-white' }}">
+      시즌 종료시 예상순위
+    </a>
+    {% endif %}
+  </div>
+
+  {% if err %}
+    <p class="text-sm text-red-600">데이터 로드 오류: {{ err }}</p>
+  {% endif %}
+
+  {% if sort_by != 'proj' %}
+    <!-- 현재/피타고 공용 테이블 -->
+    <div class="bg-white rounded-2xl shadow overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-slate-100 text-slate-700">
+          <tr>
+            <th class="px-3 py-2 text-center">순위</th>
+            <th class="px-3 py-2 text-left">팀</th>
+            <th class="px-3 py-2 text-right">경기</th>
+            <th class="px-3 py-2 text-right">승</th>
+            <th class="px-3 py-2 text-right">무</th>
+            <th class="px-3 py-2 text-right">패</th>
+            <th class="px-3 py-2 text-right">득점</th>
+            <th class="px-3 py-2 text-right">실점</th>
+            <th class="px-3 py-2 text-right">현재 승률</th>
+            <th class="px-3 py-2 text-right">피타고리안 승률</th>
+            <th class="px-3 py-2 text-right">차이(피타고-현재)</th>
+            <th class="px-3 py-2 text-right">승차</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+            <tr class="border-t">
+              <td class="px-3 py-2 text-center">{{ r.rank }}</td>
+              <td class="px-3 py-2">{{ r.team }}</td>
+
+              <td class="px-3 py-2 text-right">
+                {% if r.gp is not string and r.gp == r.gp %}{{ r.gp|round(0)|int }}
+                {% elif r.gp is string and r.gp != '-' %}{{ (r.gp|float)|round(0)|int }}
+                {% else %}-{% endif %}
+              </td>
+
+              <td class="px-3 py-2 text-right">
+                {% if r.w is not string and r.w == r.w %}{{ r.w|round(0)|int }}
+                {% elif r.w is string and r.w != '-' %}{{ (r.w|float)|round(0)|int }}
+                {% else %}-{% endif %}
+              </td>
+
+              <td class="px-3 py-2 text-right">
+                {% if r.d is not string and r.d == r.d %}{{ r.d|round(0)|int }}
+                {% elif r.d is string and r.d != '-' %}{{ (r.d|float)|round(0)|int }}
+                {% else %}0{% endif %}
+              </td>
+
+              <td class="px-3 py-2 text-right">
+                {% if r.l is not string and r.l == r.l %}{{ r.l|round(0)|int }}
+                {% elif r.l is string and r.l != '-' %}{{ (r.l|float)|round(0)|int }}
+                {% else %}-{% endif %}
+              </td>
+
+              <td class="px-3 py-2 text-right">
+                {% if r.rs == r.rs %}{{ r.rs|round(0)|int }}{% else %}-{% endif %}
+              </td>
+
+              <td class="px-3 py-2 text-right">
+                {% if r.ra == r.ra %}{{ r.ra|round(0)|int }}{% else %}-{% endif %}
+              </td>
+
+              <!-- 현재 승률 (할푼리) -->
+              <td class="px-3 py-2 text-right">
+                {% if r.actual_pct == r.actual_pct %}{{ '%.3f' % r.actual_pct }}{% else %}-{% endif %}
+              </td>
+
+              <!-- 피타고리안 승률 (할푼리) -->
+              <td class="px-3 py-2 text-right font-medium">
+                {% if r.calc_pct == r.calc_pct %}{{ '%.3f' % r.calc_pct }}{% else %}-{% endif %}
+              </td>
+
+              <!-- 차이(할푼리) -->
+              <td class="px-3 py-2 text-right {% if r.diff==r.diff and r.diff>0 %}text-green-600{% elif r.diff==r.diff and r.diff<0 %}text-red-600{% endif %}">
+                {% if r.diff == r.diff %}{{ '%.3f' % r.diff }}{% else %}-{% endif %}
+              </td>
+
+              <!-- 승차(GB) -->
+              <td class="px-3 py-2 text-right">
+                {% if r.gb == r.gb %}{{ '%.1f' % r.gb }}{% else %}-{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  {% else %}
+    <!-- 시즌 종료시 예상순위 (지수 반영) -->
+    {% if has_projection %}
+      <div class="bg-white rounded-2xl shadow overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-100 text-slate-700">
+            <tr>
+              <th class="px-3 py-2 text-center">예상 순위</th>
+              <th class="px-3 py-2 text-left">팀</th>
+              <th class="px-3 py-2 text-right">예상 승</th>
+              <th class="px-3 py-2 text-right">예상 무</th>
+              <th class="px-3 py-2 text-right">예상 패</th>
+              <th class="px-3 py-2 text-right">예상 승률(지수 반영)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in rows %}
+              <tr class="border-t">
+                <td class="px-3 py-2 text-center">{{ r.rank }}</td>
+                <td class="px-3 py-2">{{ r.team }}</td>
+
+                <td class="px-3 py-2 text-right">
+                  {% if r.proj_w is not string and r.proj_w == r.proj_w %}{{ r.proj_w|round(0)|int }}
+                  {% elif r.proj_w is string and r.proj_w != '-' %}{{ (r.proj_w|float)|round(0)|int }}
+                  {% else %}-{% endif %}
+                </td>
+
+                <td class="px-3 py-2 text-right">
+                  {% if r.proj_d is not string and r.proj_d == r.proj_d %}{{ r.proj_d|round(0)|int }}
+                  {% elif r.proj_d is string and r.proj_d != '-' %}{{ (r.proj_d|float)|round(0)|int }}
+                  {% else %}0{% endif %}
+                </td>
+
+                <td class="px-3 py-2 text-right">
+                  {% if r.proj_l is not string and r.proj_l == r.proj_l %}{{ r.proj_l|round(0)|int }}
+                  {% elif r.proj_l is string and r.proj_l != '-' %}{{ (r.proj_l|float)|round(0)|int }}
+                  {% else %}-{% endif %}
+                </td>
+
+                <td class="px-3 py-2 text-right font-medium">
+                  {% if r.proj_pct == r.proj_pct %}{{ '%.3f' % r.proj_pct }}{% else %}-{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-sm text-slate-600">예상치를 계산할 수 없어 “시즌 종료시 예상순위”를 표시하지 않습니다. (득·실점 데이터 필요)</p>
+    {% endif %}
+  {% endif %}
+
+  <p class="mt-3 text-xs text-slate-500">
+    데이터 소스는 환경변수 <code>PYTHAG_CSV_URL</code> (Google Sheets CSV) 또는 <code>PYTHAG_XLSX</code>로 지정합니다.
+  </p>
+{% endblock %}

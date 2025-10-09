@@ -5,13 +5,13 @@ bp = Blueprint("pitch", __name__)
 # ▼▼▼ 리그 프리셋 (예시 값) ▼▼▼
 PRESETS_PITCH = {
     "kbo_2025_example": {
-        "label": "KBO 2025 (진행중)",
-        "lgERA": 4.22,
-        "lgFIP": 4.18,
-        "lgxFIP": 3.20
+        "label": "25 KBO",
+        "lgERA": 4.31,
+        "lgFIP": 4.26,
+        "lgxFIP": 3.26
     },
     "kbo_2024_example": {
-        "label": "KBO 2024 (반영완료)",
+        "label": "24 KBO",
         "lgERA": 4.91,
         "lgFIP": 4.79,
         "lgxFIP": 3.58

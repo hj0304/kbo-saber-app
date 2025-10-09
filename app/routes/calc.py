@@ -5,16 +5,16 @@ bp = Blueprint("calc", __name__)
 # ▼▼▼ 타자 프리셋 정의 (예시 값: 반드시 실제 시즌 상수로 갱신해서 쓰세요) ▼▼▼
 PRESETS = {
     "kbo_2025_example": {
-        "label": "KBO 2025 (진행중)",
-        "lgwOBA": 0.337,
-        "wOBAScale": 1.176,
-        "lgRperPA": 0.1196,
-        "lgwRCperPA_noP": 0.1196,
-        "lgOBP": 0.337,          # OPS+ 참고용
-        "lgSLG": 0.385           # OPS+ 참고용
+        "label": "25 KBO",
+        "lgwOBA": 0.338,
+        "wOBAScale": 1.173,
+        "lgRperPA": 0.1217,
+        "lgwRCperPA_noP": 0.1217,
+        "lgOBP": 0.338,          # OPS+ 참고용
+        "lgSLG": 0.389           # OPS+ 참고용
     },
     "kbo_2024_example": {
-        "label": "KBO 2024 (반영완료)",
+        "label": "24 KBO",
         "lgwOBA": 0.352,
         "wOBAScale": 1.093,
         "lgRperPA": 0.1352,

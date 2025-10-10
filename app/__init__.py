@@ -9,6 +9,7 @@ load_dotenv()
 
 def create_app():
     app = Flask(__name__)
+    app.url_map.strict_slashes = False
     app.register_blueprint(calc_bp)
     app.register_blueprint(pitch_bp, url_prefix="/pitch")
     app.register_blueprint(gamescore_bp)          # /gamescore

@@ -1,6 +1,6 @@
 from flask import Flask
 from .routes.calc import bp as calc_bp
-from .routes.pitch import bp as pitch_bp  # 이미 있다면 유지
+from .routes.pitch import bp as pitch_bp
 from .routes.gamescore import bp as gamescore_bp
 from .routes.pythag import bp as pythag_bp
 from dotenv import load_dotenv

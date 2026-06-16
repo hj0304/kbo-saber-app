@@ -13,7 +13,7 @@ SEASON_GAMES = 144                                # KBO 정규시즌 총 경기 
 # .env 파일에서 각 시즌 URL을 불러오도록 수정
 PYTHAG_PRESETS = {
     "kbo_2026": {
-        "label": "KBO 2026 (준비중)",
+        "label": "KBO 2026",
         "url": os.environ.get("PYTHAG_CSV_URL_2026"),
         "season_games": 144,
     },
@@ -105,8 +105,8 @@ def pythag():
     season_games = SEASON_GAMES  # 기본값
 
     if preset_key == "live":
-        # 'live'는 .env 파일의 기본 URL을 사용
-        data_url = os.environ.get("PYTHAG_CSV_URL")
+        # 'live'는 현재 시즌(2026) URL을 사용 (없으면 기본 PYTHAG_CSV_URL로 폴백)
+        data_url = os.environ.get("PYTHAG_CSV_URL_2026") or os.environ.get("PYTHAG_CSV_URL")
     elif preset_key in PYTHAG_PRESETS:
         preset_data = PYTHAG_PRESETS[preset_key]
         data_url = preset_data.get("url")
